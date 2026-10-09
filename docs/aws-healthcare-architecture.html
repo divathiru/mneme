@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise AI-Powered Healthcare Operations Assistant – AWS Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f1923;
+    font-family: 'Amazon Ember', 'Segoe UI', Arial, sans-serif;
+    color: #e8eaed;
+    overflow-x: auto;
+  }
+  .page-header {
+    background: linear-gradient(135deg, #1a2332 0%, #0f1923 100%);
+    border-bottom: 2px solid #FF9900;
+    padding: 18px 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .aws-logo {
+    width: 60px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  .page-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FF9900;
+    line-height: 1.3;
+  }
+  .page-header p {
+    font-size: 11px;
+    color: #8a9bb0;
+    margin-top: 2px;
+  }
+  .hipaa-badge {
+    margin-left: auto;
+    background: #1e3a2f;
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .canvas {
+    padding: 24px;
+    min-width: 1400px;
+  }
+
+  /* LAYER CONTAINERS */
+  .layer {
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .layer-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+  .layer-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .layer-row.center { justify-content: center; }
+
+  /* LAYER THEMES */
+  .layer-users     { background: #141e2b; border: 1px solid #2a3f5f; }
+  .layer-edge      { background: #1a1a2e; border: 1px solid #4a4a8a; }
+  .layer-identity  { background: #1a2a1a; border: 1px solid #2a5a2a; }
+  .layer-api       { background: #1e1a2a; border: 1px solid #5a3a8a; }
+  .layer-compute   { background: #1e2018; border: 1px solid #6a5a18; }
+  .layer-ai        { background: #0f2a2a; border: 1px solid #1a6a6a; }
+  .layer-data      { background: #1a1432; border: 1px solid #3a2a6a; }
+  .layer-integration { background: #1a2a18; border: 1px solid #2a5a28; }
+  .layer-security  { background: #2a1414; border: 1px solid #6a2020; }
+  .layer-ops       { background: #141a2a; border: 1px solid #1e3a6a; }
+
+  .lbl-users      { background: #2a3f5f; color: #7eb3e8; }
+  .lbl-edge       { background: #2a2a5a; color: #a0a0ff; }
+  .lbl-identity   { background: #1a4a1a; color: #7ae87a; }
+  .lbl-api        { background: #3a1a6a; color: #c07aff; }
+  .lbl-compute    { background: #4a3a10; color: #ffcc44; }
+  .lbl-ai         { background: #0a4a4a; color: #44dddd; }
+  .lbl-data       { background: #2a1a5a; color: #aa88ff; }
+  .lbl-integration { background: #1a4a18; color: #66ee66; }
+  .lbl-security   { background: #5a1818; color: #ff8888; }
+  .lbl-ops        { background: #0e2a5a; color: #88aaff; }
+
+  /* SERVICE CARDS */
+  .svc {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 8px 8px;
+    border-radius: 10px;
+    width: 110px;
+    min-width: 110px;
+    border: 1px solid transparent;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .svc:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+  .svc-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 7px;
+    flex-shrink: 0;
+    font-size: 20px;
+  }
+  .svc-name {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.35;
+    color: #d4dce8;
+  }
+  .svc-sub {
+    font-size: 8px;
+    color: #7a8a9a;
+    text-align: center;
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+
+  /* AWS SERVICE COLOUR FAMILIES */
+  /* Networking & Content Delivery – Purple */
+  .svc-network { background: #1a1038; border-color: #6644cc; }
+  .svc-network .svc-icon { background: #8C4FFF; }
+
+  /* Security, Identity & Compliance – Red */
+  .svc-security { background: #200a0a; border-color: #aa2222; }
+  .svc-security .svc-icon { background: #DD344C; }
+
+  /* Compute – Orange */
+  .svc-compute { background: #1e1200; border-color: #cc7700; }
+  .svc-compute .svc-icon { background: #FF9900; }
+
+  /* AI / ML – Teal */
+  .svc-ai { background: #001e1e; border-color: #009999; }
+  .svc-ai .svc-icon { background: #01A88D; }
+
+  /* Storage – Green */
+  .svc-storage { background: #0a1a06; border-color: #3a8a14; }
+  .svc-storage .svc-icon { background: #7AA116; }
+
+  /* Database – Navy */
+  .svc-database { background: #050e2a; border-color: #1a3a9a; }
+  .svc-database .svc-icon { background: #3F48CC; }
+
+  /* Integration / Messaging – Pink/Rose */
+  .svc-integration { background: #1e0514; border-color: #881440; }
+  .svc-integration .svc-icon { background: #E7157B; }
+
+  /* Management – Dark Pink */
+  .svc-mgmt { background: #1a0818; border-color: #8a2060; }
+  .svc-mgmt .svc-icon { background: #E7157B; }
+
+  /* Analytics – Blue */
+  .svc-analytics { background: #040e22; border-color: #0a3a7a; }
+  .svc-analytics .svc-icon { background: #0052CC; }
+
+  /* Healthcare specific – Aqua */
+  .svc-health { background: #001a1a; border-color: #006666; }
+  .svc-health .svc-icon { background: #0073BB; }
+
+  /* USER AVATARS */
+  .user-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100px;
+  }
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    border: 2px solid #3a5a8a;
+    background: #1a2a3a;
+  }
+  .user-name {
+    font-size: 9px;
+    color: #8aaacc;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* ARROWS / DATA FLOW */
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FF9900;
+    font-size: 22px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .flow-label {
+    font-size: 8px;
+    color: #FF9900;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  /* FLOW DIVIDERS (between layers) */
+  .flow-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: -6px 0;
+    position: relative;
+    z-index: 5;
+  }
+  .flow-line {
+    height: 2px;
+    flex: 1;
+    max-width: 120px;
+  }
+  .flow-badge {
+    background: #1a2a1a;
+    border: 1px solid #2a5a2a;
+    color: #66cc66;
+    font-size: 9px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .flow-badge.https  { background:#1a1432; border-color:#6644cc; color:#c088ff; }
+  .flow-badge.events { background:#1a0818; border-color:#881440; color:#ff88cc; }
+  .flow-badge.fhir   { background:#001a1a; border-color:#006666; color:#44cccc; }
+  .flow-badge.sql    { background:#040e22; border-color:#0a3a7a; color:#6699ff; }
+  .flow-badge.stream { background:#1a4a18; border-color:#2a7a28; color:#66ff66; }
+  .animated-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #FF9900 50%, transparent);
+    background-size: 200% 100%;
+    animation: flowAnim 1.8s linear infinite;
+    border-radius: 1px;
+    width: 60px;
+  }
+  @keyframes flowAnim {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .animated-line.purple {
+    background: linear-gradient(90deg, transparent, #8C4FFF 50%, transparent);
+    background-size: 200% 100%;
+    animation: flowAnimPurple 1.8s linear infinite;
+  }
+  @keyframes flowAnimPurple {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .animated-line.teal {
+    background: linear-gradient(90deg, transparent, #01A88D 50%, transparent);
+    background-size: 200% 100%;
+    animation: flowAnimTeal 1.8s linear infinite;
+  }
+  @keyframes flowAnimTeal {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* SUBGROUP BOX */
+  .subgroup {
+    border: 1px dashed #3a4a5a;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 0 4px;
+  }
+  .subgroup-label {
+    font-size: 8px;
+    color: #6a8a9a;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .subgroup-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .subgroup.eks {
+    border-color: #FF9900;
+    background: #0f1408;
+    flex: 1;
+  }
+  .subgroup.bedrock {
+    border-color: #01A88D;
+    background: #001410;
+    flex: 1;
+  }
+
+  /* NETWORK TOPOLOGY BOX */
+  .topology {
+    background: #0a1520;
+    border: 1px solid #2a4a6a;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 14px;
+  }
+  .topology h3 {
+    color: #FF9900;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .topology-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .topo-item {
+    background: #101c28;
+    border: 1px solid #1a3a5a;
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .topo-item h4 {
+    font-size: 9px;
+    color: #88aacc;
+    margin-bottom: 4px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .topo-item p {
+    font-size: 8.5px;
+    color: #6a8a9a;
+    line-height: 1.5;
+  }
+  .topo-item span { color: #FF9900; font-weight: 600; }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #0a1520;
+    border: 1px solid #1a3a5a;
+    border-radius: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    color: #8a9aaa;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a9aaa;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 6px 0 4px;
+    padding-left: 4px;
+  }
+  .vpc-wrapper {
+    border: 2px solid #4a3a18;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 14px;
+    background: #0c1008;
+    position: relative;
+  }
+  .vpc-label {
+    position: absolute;
+    top: -10px;
+    left: 14px;
+    background: #4a3a18;
+    color: #FF9900;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <!-- AWS SVG Logo -->
+  <svg class="aws-logo" viewBox="0 0 60 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.1 13.2l-3.7 13.3h-1.8L8.2 13.2h1.9l2.6 10.3 2.6-10.3h1.8zM24.5 21.4h-5.2c0 1.6 0.9 2.5 2.4 2.5 0.8 0 1.5-0.3 2-0.8l0.7 1.1c-0.7 0.7-1.8 1.1-2.9 1.1-2.4 0-3.9-1.6-3.9-4 0-2.4 1.6-4 3.8-4 2.1 0 3.3 1.4 3.3 3.6l-0.2 0.5zm-5.1-1.1h3.5c-0.1-1.2-0.7-1.9-1.7-1.9-1.1 0-1.7 0.7-1.8 1.9zM32.8 25.3c-0.4 0.3-1 0.4-1.6 0.4-1.5 0-2.3-0.9-2.3-2.4v-4.1h-1.3v-1.4h1.3v-2.1h1.7v2.1h2v1.4h-2v3.9c0 0.7 0.3 1.1 0.9 1.1 0.3 0 0.7-0.1 0.9-0.3l0.4 1.4zM40.2 25.5v-5.1c0-1.2-0.6-1.8-1.7-1.8-0.8 0-1.6 0.5-2 1.1v5.8h-1.7v-11.5l1.7-0.3v4.7c0.6-0.7 1.5-1.1 2.5-1.1 1.9 0 2.9 1.1 2.9 3v5.2h-1.7zM47.3 25.7c-2.3 0-3.8-1.6-3.8-4.1 0-2.4 1.6-4 3.9-4 2.3 0 3.8 1.6 3.8 4 0 2.5-1.5 4.1-3.9 4.1zm0-1.4c1.3 0 2.1-1 2.1-2.7 0-1.6-0.8-2.6-2.1-2.6-1.3 0-2.1 1-2.1 2.6 0 1.7 0.8 2.7 2.1 2.7z" fill="#FF9900"/>
+    <path d="M8 31.2c7.7 3.3 16.4 4.4 24.9 3.1 5.4-0.8 10.5-2.7 15.1-5.5l-1.1-1.5c-4.3 2.6-9.1 4.3-14.1 5.1-7.9 1.2-16 0.2-23.3-2.9l-1.5 1.7z" fill="#FF9900"/>
+    <path d="M49.8 27.2c1.8-1.5 3.4-3.2 4.8-5.1l-1.5-0.9c-1.3 1.7-2.7 3.3-4.3 4.6l1 1.4z" fill="#FF9900"/>
+    <path d="M54.5 21.5c0.9-1.8 1.6-3.7 2-5.7l-1.8-0.3c-0.4 1.8-1 3.5-1.8 5.1l1.6 0.9z" fill="#FF9900"/>
+  </svg>
+  <div>
+    <h1>Enterprise AI-Powered Healthcare Operations Assistant Platform</h1>
+    <p>AWS Cloud Architecture · Multi-AZ · HIPAA Compliant · HITRUST · SOC 2</p>
+  </div>
+  <div class="hipaa-badge">✓ HIPAA ELIGIBLE</div>
+</div>
+
+<div class="canvas">
+
+<!-- ===== USERS ===== -->
+<div class="layer layer-users">
+  <span class="layer-label lbl-users">👤 Users / Clients</span>
+  <div class="layer-row center" style="gap:20px;">
+    <div class="user-card"><div class="user-avatar">🩺</div><div class="user-name">Clinicians<br/>(Web App)</div></div>
+    <div class="user-card"><div class="user-avatar">👩‍⚕️</div><div class="user-name">Nurses<br/>(Mobile App)</div></div>
+    <div class="user-card"><div class="user-avatar">🏥</div><div class="user-name">Admin Staff<br/>(Portal)</div></div>
+    <div class="user-card"><div class="user-avatar">🔬</div><div class="user-name">Radiologists<br/>(DICOM App)</div></div>
+    <div class="user-card"><div class="user-avatar">📊</div><div class="user-name">Hospital Mgmt<br/>(Dashboard)</div></div>
+    <div class="user-card"><div class="user-avatar">🤒</div><div class="user-name">Patients<br/>(Portal/App)</div></div>
+  </div>
+</div>
+
+<!-- FLOW: Users → Edge -->
+<div class="flow-connector">
+  <div class="animated-line purple"></div>
+  <div class="flow-badge https">HTTPS / WSS / TLS 1.3</div>
+  <div class="animated-line purple"></div>
+</div>
+
+<!-- ===== EDGE / CDN ===== -->
+<div class="layer layer-edge">
+  <span class="layer-label lbl-edge">🌐 Edge, Ingress &amp; CDN Layer</span>
+  <div class="layer-row center" style="gap:12px; align-items:center;">
+    <div class="svc svc-network">
+      <div class="svc-icon">🗺️</div>
+      <div class="svc-name">Amazon Route 53</div>
+      <div class="svc-sub">DNS · Health Checks · Failover</div>
+    </div>
+    <div style="color:#6644cc; font-size:18px;">→</div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🛡️</div>
+      <div class="svc-name">AWS WAF &amp;<br/>Shield Advanced</div>
+      <div class="svc-sub">DDoS · OWASP Rules · L7</div>
+    </div>
+    <div style="color:#6644cc; font-size:18px;">→</div>
+    <div class="svc svc-network">
+      <div class="svc-icon">⚡</div>
+      <div class="svc-name">Amazon CloudFront</div>
+      <div class="svc-sub">CDN · TLS Termination · Edge Cache</div>
+    </div>
+    <div style="color:#6644cc; font-size:18px;">→</div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🔐</div>
+      <div class="svc-name">AWS Certificate<br/>Manager (ACM)</div>
+      <div class="svc-sub">TLS Certs · Auto-Renew</div>
+    </div>
+    <div style="color:#6644cc; font-size:18px;">→</div>
+    <div class="svc svc-network">
+      <div class="svc-icon">⚖️</div>
+      <div class="svc-name">Application Load<br/>Balancer (ALB)</div>
+      <div class="svc-sub">Multi-AZ · Path Routing · mTLS</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div class="flow-connector">
+  <div class="animated-line"></div>
+  <div class="flow-badge">JWT Token Validation · RBAC</div>
+  <div class="animated-line"></div>
+</div>
+
+<!-- ===== IDENTITY ===== -->
+<div class="layer layer-identity">
+  <span class="layer-label lbl-identity">🔑 Identity &amp; Access Layer</span>
+  <div class="layer-row center" style="gap:12px;">
+    <div class="svc svc-security">
+      <div class="svc-icon">🪪</div>
+      <div class="svc-name">Amazon Cognito</div>
+      <div class="svc-sub">Auth · MFA · RBAC · SAML Federation</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">👥</div>
+      <div class="svc-name">IAM Identity Center<br/>(SSO)</div>
+      <div class="svc-sub">SAML · SCIM · Hospital AD Sync</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🔒</div>
+      <div class="svc-name">AWS IAM</div>
+      <div class="svc-sub">Least Privilege · Service Roles · Policies</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🗝️</div>
+      <div class="svc-name">AWS Secrets<br/>Manager</div>
+      <div class="svc-sub">Credential Rotation · API Keys</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div class="flow-connector">
+  <div class="animated-line purple"></div>
+  <div class="flow-badge https">REST + WebSocket API Calls</div>
+  <div class="animated-line purple"></div>
+</div>
+
+<!-- ===== API GATEWAY ===== -->
+<div class="layer layer-api">
+  <span class="layer-label lbl-api">🔗 API Gateway Layer</span>
+  <div class="layer-row center" style="gap:12px;">
+    <div class="svc svc-network" style="width:180px; min-width:180px;">
+      <div class="svc-icon">🚪</div>
+      <div class="svc-name">Amazon API Gateway</div>
+      <div class="svc-sub">REST API (HL7 FHIR R4) · WebSocket (Real-time AI Chat) · Throttling · Usage Plans</div>
+    </div>
+    <div class="svc svc-network">
+      <div class="svc-icon">📡</div>
+      <div class="svc-name">AWS AppSync<br/>(GraphQL)</div>
+      <div class="svc-sub">Real-time Subscriptions · Dashboard Data</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW: into VPC -->
+<div class="flow-connector">
+  <div class="animated-line"></div>
+  <div class="flow-badge">VPC Private Subnets · No Public Internet</div>
+  <div class="animated-line"></div>
+</div>
+
+<!-- ===== COMPUTE (VPC) ===== -->
+<div class="vpc-wrapper">
+  <div class="vpc-label">🏗️ AWS VPC · 3 AZs · Private Subnets</div>
+  <div class="layer layer-compute" style="margin-bottom:0;">
+    <span class="layer-label lbl-compute">⚙️ Compute / Application Layer</span>
+    <div class="subgroup eks">
+      <div class="subgroup-label">Amazon EKS – Kubernetes Cluster (Multi-AZ, Fargate + Managed Node Groups)</div>
+      <div class="subgroup-row">
+        <div class="svc svc-compute">
+          <div class="svc-icon">👤</div>
+          <div class="svc-name">Patient Context<br/>Service</div>
+          <div class="svc-sub">Pod · HPA</div>
+        </div>
+        <div class="svc svc-compute">
+          <div class="svc-icon">📅</div>
+          <div class="svc-name">Scheduling &amp;<br/>Ops Service</div>
+          <div class="svc-sub">Pod · HPA</div>
+        </div>
+        <div class="svc svc-compute">
+          <div class="svc-icon">📝</div>
+          <div class="svc-name">Clinical Notes<br/>NLP Service</div>
+          <div class="svc-sub">Pod · GPU Node</div>
+        </div>
+        <div class="svc svc-compute">
+          <div class="svc-icon">💊</div>
+          <div class="svc-name">Medication &amp;<br/>Orders Service</div>
+          <div class="svc-sub">Pod · HPA</div>
+        </div>
+        <div class="svc svc-ai" style="width:150px; min-width:150px;">
+          <div class="svc-icon">🧠</div>
+          <div class="svc-name">AI Orchestration Service</div>
+          <div class="svc-sub">LangChain · Bedrock SDK · Tool Calling · RAG Pipeline</div>
+        </div>
+        <div class="svc svc-health">
+          <div class="svc-icon">🏥</div>
+          <div class="svc-name">FHIR Adapter<br/>Service</div>
+          <div class="svc-sub">HL7 R4 · EHR Proxy</div>
+        </div>
+        <div class="svc svc-compute">
+          <div class="svc-icon">🔔</div>
+          <div class="svc-name">Notification<br/>Service</div>
+          <div class="svc-sub">Push · SMS · Email</div>
+        </div>
+        <div class="svc svc-compute">
+          <div class="svc-icon">💬</div>
+          <div class="svc-name">Conversation<br/>Memory Service</div>
+          <div class="svc-sub">Session Mgmt · Context Window</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW: Compute → AI/ML -->
+<div class="flow-connector">
+  <div class="animated-line teal"></div>
+  <div class="flow-badge fhir">Bedrock API · SageMaker Endpoints · FHIR Queries</div>
+  <div class="animated-line teal"></div>
+</div>
+
+<!-- ===== AI / ML ===== -->
+<div class="layer layer-ai">
+  <span class="layer-label lbl-ai">🤖 AI / ML Layer</span>
+  <div class="subgroup bedrock" style="margin-bottom:10px;">
+    <div class="subgroup-label">Amazon Bedrock – Managed Generative AI (Private, HIPAA-eligible)</div>
+    <div class="subgroup-row">
+      <div class="svc svc-ai" style="width:130px; min-width:130px;">
+        <div class="svc-icon">🤖</div>
+        <div class="svc-name">Claude 3.5 Sonnet</div>
+        <div class="svc-sub">Clinical Reasoning · Long-context Summarization</div>
+      </div>
+      <div class="svc svc-ai">
+        <div class="svc-icon">📚</div>
+        <div class="svc-name">Bedrock<br/>Knowledge Base</div>
+        <div class="svc-sub">RAG · Clinical Protocols · Formulary</div>
+      </div>
+      <div class="svc svc-ai">
+        <div class="svc-icon">🕵️</div>
+        <div class="svc-name">Bedrock Agents</div>
+        <div class="svc-sub">Agentic Tasks · Tool Orchestration</div>
+      </div>
+      <div class="svc svc-ai">
+        <div class="svc-icon">🔢</div>
+        <div class="svc-name">Amazon Titan<br/>Embeddings</div>
+        <div class="svc-sub">Vector Encoding · Semantic Search</div>
+      </div>
+    </div>
+  </div>
+  <div class="layer-row center" style="gap:10px;">
+    <div class="svc svc-ai">
+      <div class="svc-icon">🔬</div>
+      <div class="svc-name">Amazon SageMaker</div>
+      <div class="svc-sub">Custom Fine-tune · Inference Endpoints · VPC</div>
+    </div>
+    <div class="svc svc-ai">
+      <div class="svc-icon">🏷️</div>
+      <div class="svc-name">Amazon Comprehend<br/>Medical</div>
+      <div class="svc-sub">ICD-10 · RxNorm · NER</div>
+    </div>
+    <div class="svc svc-ai">
+      <div class="svc-icon">🎙️</div>
+      <div class="svc-name">Amazon Transcribe<br/>Medical</div>
+      <div class="svc-sub">Voice Dictation · Medical Vocab</div>
+    </div>
+    <div class="svc svc-health">
+      <div class="svc-icon">🩺</div>
+      <div class="svc-name">Amazon HealthLake</div>
+      <div class="svc-sub">FHIR-native Store · HIPAA · NLP</div>
+    </div>
+    <div class="svc svc-ai">
+      <div class="svc-icon">🖼️</div>
+      <div class="svc-name">Amazon Rekognition</div>
+      <div class="svc-sub">Medical Image Workflow Routing</div>
+    </div>
+    <div class="svc svc-health">
+      <div class="svc-icon">📷</div>
+      <div class="svc-name">AWS HealthImaging</div>
+      <div class="svc-sub">DICOM · PACS Cloud Store</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW: AI → Data -->
+<div class="flow-connector">
+  <div class="animated-line"></div>
+  <div class="flow-badge sql">Read/Write · Vector Queries · Cache · Object Store</div>
+  <div class="animated-line"></div>
+</div>
+
+<!-- ===== DATA ===== -->
+<div class="layer layer-data">
+  <span class="layer-label lbl-data">🗄️ Data Layer (All Encrypted at Rest · CMK · Multi-AZ)</span>
+  <div class="layer-row center" style="gap:10px;">
+    <div class="svc svc-database" style="width:125px; min-width:125px;">
+      <div class="svc-icon">🐘</div>
+      <div class="svc-name">Amazon Aurora<br/>PostgreSQL</div>
+      <div class="svc-sub">EHR Structured Data · JSONB FHIR · Multi-AZ</div>
+    </div>
+    <div class="svc svc-database" style="width:125px; min-width:125px;">
+      <div class="svc-icon">🔍</div>
+      <div class="svc-name">Amazon OpenSearch</div>
+      <div class="svc-sub">Vector DB · Semantic RAG · Full-text Clinical Search</div>
+    </div>
+    <div class="svc svc-database">
+      <div class="svc-icon">⚡</div>
+      <div class="svc-name">ElastiCache<br/>(Redis)</div>
+      <div class="svc-sub">Session · RAG Cache · Context</div>
+    </div>
+    <div class="svc svc-storage">
+      <div class="svc-icon">🪣</div>
+      <div class="svc-name">Amazon S3</div>
+      <div class="svc-sub">DICOM · Docs · Model Artefacts · Audit Logs (Object Lock)</div>
+    </div>
+    <div class="svc svc-database">
+      <div class="svc-icon">⚡</div>
+      <div class="svc-name">Amazon DynamoDB</div>
+      <div class="svc-sub">Session State · AI Audit Trail · &lt;5ms</div>
+    </div>
+    <div class="svc svc-analytics">
+      <div class="svc-icon">📊</div>
+      <div class="svc-name">Amazon Redshift</div>
+      <div class="svc-sub">Operational Analytics · Reporting Warehouse</div>
+    </div>
+    <div class="svc svc-analytics">
+      <div class="svc-icon">🏞️</div>
+      <div class="svc-name">AWS Lake Formation</div>
+      <div class="svc-sub">Healthcare Data Lake · Row/Col Security · Governance</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW: Data ↔ Integration -->
+<div class="flow-connector">
+  <div class="animated-line"></div>
+  <div class="flow-badge stream">HL7 v2 · FHIR R4 Events · Kafka Topics · SQS Queues</div>
+  <div class="animated-line"></div>
+</div>
+
+<!-- ===== INTEGRATION ===== -->
+<div class="layer layer-integration">
+  <span class="layer-label lbl-integration">🔄 Integration &amp; Messaging Layer</span>
+  <div class="layer-row center" style="gap:10px;">
+    <div class="svc svc-integration">
+      <div class="svc-icon">🚌</div>
+      <div class="svc-name">Amazon EventBridge</div>
+      <div class="svc-sub">EHR Event Bus · Fan-out · Rules Engine</div>
+    </div>
+    <div class="svc svc-integration" style="width:130px; min-width:130px;">
+      <div class="svc-icon">📨</div>
+      <div class="svc-name">Amazon MSK<br/>(Kafka)</div>
+      <div class="svc-sub">Real-time HL7 / FHIR Streaming · Lab Results · ADT Events</div>
+    </div>
+    <div class="svc svc-integration">
+      <div class="svc-icon">🎭</div>
+      <div class="svc-name">AWS Step Functions</div>
+      <div class="svc-sub">Clinical Workflow Orchestration · Prior Auth</div>
+    </div>
+    <div class="svc svc-integration">
+      <div class="svc-icon">📬</div>
+      <div class="svc-name">Amazon SQS/SNS</div>
+      <div class="svc-sub">Async Notifications · Task Queuing · DLQ</div>
+    </div>
+    <div class="svc svc-integration">
+      <div class="svc-icon">📣</div>
+      <div class="svc-name">Amazon Pinpoint</div>
+      <div class="svc-sub">Patient SMS · Email · Push Comms</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW: to on-prem -->
+<div class="flow-connector">
+  <div class="animated-line"></div>
+  <div class="flow-badge">AWS Direct Connect / VPN · AWS PrivateLink</div>
+  <div class="animated-line"></div>
+</div>
+
+<!-- ===== ON-PREMISES CONNECTIVITY ===== -->
+<div class="layer" style="background:#0a1408; border:1px dashed #2a4a22; margin-bottom:14px;">
+  <span class="layer-label" style="background:#1a3a14; color:#66aa44;">🏗️ On-Premises / Hybrid Connectivity</span>
+  <div class="layer-row center" style="gap:12px;">
+    <div class="svc svc-network">
+      <div class="svc-icon">🔌</div>
+      <div class="svc-name">AWS Direct Connect</div>
+      <div class="svc-sub">Dedicated Line to Hospital Network</div>
+    </div>
+    <div class="svc svc-network">
+      <div class="svc-icon">🔗</div>
+      <div class="svc-name">AWS PrivateLink</div>
+      <div class="svc-sub">Private SaaS Connectivity · Lab / Pharmacy Systems</div>
+    </div>
+    <div class="svc" style="background:#0a1408; border-color:#2a4a22; width:130px; min-width:130px;">
+      <div class="svc-icon" style="background:#1a3a14;">🏥</div>
+      <div class="svc-name" style="color:#88cc66;">Epic / Cerner EHR</div>
+      <div class="svc-sub">HL7 v2 · FHIR R4 · On-Premises</div>
+    </div>
+    <div class="svc" style="background:#0a1408; border-color:#2a4a22;">
+      <div class="svc-icon" style="background:#1a3a14;">🖥️</div>
+      <div class="svc-name" style="color:#88cc66;">PACS / HIS</div>
+      <div class="svc-sub">Legacy Imaging · Hospital Info System</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECURITY ===== -->
+<div class="layer layer-security">
+  <span class="layer-label lbl-security">🛡️ Security &amp; Compliance Layer (HIPAA · HITRUST · SOC 2)</span>
+  <div class="layer-row center" style="gap:10px;">
+    <div class="svc svc-security">
+      <div class="svc-icon">🔑</div>
+      <div class="svc-name">AWS KMS</div>
+      <div class="svc-sub">CMK · Envelope Encryption · Annual Key Rotation</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🔎</div>
+      <div class="svc-name">Amazon Macie</div>
+      <div class="svc-sub">PHI Discovery · S3 Scan · Alerts</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">👁️</div>
+      <div class="svc-name">Amazon GuardDuty</div>
+      <div class="svc-sub">Threat Detection · VPC Flow Logs · DNS Anomaly</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🏛️</div>
+      <div class="svc-name">AWS Security Hub</div>
+      <div class="svc-sub">Unified Posture · HIPAA Controls · HITRUST</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">📋</div>
+      <div class="svc-name">AWS CloudTrail</div>
+      <div class="svc-sub">Immutable API Audit Log · HIPAA Evidence</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">⚙️</div>
+      <div class="svc-name">AWS Config</div>
+      <div class="svc-sub">Compliance Rules · Auto-Remediation</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">🔭</div>
+      <div class="svc-name">Amazon Inspector</div>
+      <div class="svc-sub">CVE Scan · EKS Nodes · Container Images</div>
+    </div>
+    <div class="svc svc-security">
+      <div class="svc-icon">📑</div>
+      <div class="svc-name">AWS Audit Manager</div>
+      <div class="svc-sub">Automated HIPAA &amp; SOC2 Evidence</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OBSERVABILITY ===== -->
+<div class="layer layer-ops">
+  <span class="layer-label lbl-ops">📈 Observability, DevOps &amp; DR Layer</span>
+  <div class="layer-row center" style="gap:10px;">
+    <div class="svc svc-mgmt">
+      <div class="svc-icon">📈</div>
+      <div class="svc-name">Amazon CloudWatch</div>
+      <div class="svc-sub">Metrics · Logs · Alarms · Dashboards</div>
+    </div>
+    <div class="svc svc-mgmt">
+      <div class="svc-icon">🔦</div>
+      <div class="svc-name">AWS X-Ray</div>
+      <div class="svc-sub">Distributed Tracing · Bedrock Calls · Latency</div>
+    </div>
+    <div class="svc svc-mgmt">
+      <div class="svc-icon">📊</div>
+      <div class="svc-name">Amazon Managed<br/>Grafana</div>
+      <div class="svc-sub">Clinical Ops Dashboards · SLA Monitoring</div>
+    </div>
+    <div class="svc svc-compute">
+      <div class="svc-icon">🚀</div>
+      <div class="svc-name">AWS CodePipeline<br/>+ CodeBuild</div>
+      <div class="svc-sub">GitOps CI/CD · Security Scan · Blue/Green</div>
+    </div>
+    <div class="svc svc-storage">
+      <div class="svc-icon">💾</div>
+      <div class="svc-name">AWS Backup</div>
+      <div class="svc-sub">Automated Policies · Cross-Region Replication</div>
+    </div>
+    <div class="svc svc-network">
+      <div class="svc-icon">🌍</div>
+      <div class="svc-name">Multi-Region DR<br/>(Active-Passive)</div>
+      <div class="svc-sub">Route53 Failover · &lt;2 min RTO</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NETWORK TOPOLOGY ===== -->
+<div class="topology">
+  <h3>🏗️ Network Topology &amp; VPC Design</h3>
+  <div class="topology-grid">
+    <div class="topo-item">
+      <h4>Public Subnets (3 AZs)</h4>
+      <p><span>ALB</span>, <span>NAT Gateways</span>, <span>AWS WAF</span><br/>Only entry point is HTTPS through ALB. No direct access to app tier.</p>
+    </div>
+    <div class="topo-item">
+      <h4>Private App Subnets</h4>
+      <p><span>EKS Nodes</span>, <span>Lambda Functions</span>, <span>Step Functions</span><br/>No internet access. Egress via NAT Gateway only.</p>
+    </div>
+    <div class="topo-item">
+      <h4>Private DB Subnets</h4>
+      <p><span>Aurora RDS</span>, <span>ElastiCache</span>, <span>OpenSearch</span><br/>Isolated from internet and app subnets via Security Groups.</p>
+    </div>
+    <div class="topo-item">
+      <h4>VPC Endpoints (No IGW for AI/Data)</h4>
+      <p><span>Bedrock</span>, <span>SageMaker</span>, <span>S3</span>, <span>DynamoDB</span>, <span>KMS</span>, <span>Secrets Manager</span><br/>All AI inference stays inside AWS network perimeter.</p>
+    </div>
+    <div class="topo-item">
+      <h4>Hybrid Connectivity</h4>
+      <p><span>AWS Direct Connect</span> for dedicated line to hospital data center.<br/><span>Site-to-Site VPN</span> as failover. <span>PrivateLink</span> for third-party SaaS.</p>
+    </div>
+    <div class="topo-item">
+      <h4>Disaster Recovery</h4>
+      <p><span>Primary Region:</span> us-east-1<br/><span>DR Region:</span> us-west-2<br/>Aurora Global DB · S3 Cross-Region Replication · Route53 Health Failover</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LEGEND ===== -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#8C4FFF;"></div> Networking &amp; CDN</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#DD344C;"></div> Security &amp; Identity</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#FF9900;"></div> Compute</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#01A88D;"></div> AI / ML</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7AA116;"></div> Storage</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3F48CC;"></div> Database</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#E7157B;"></div> Integration &amp; Messaging</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0052CC;"></div> Analytics</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0073BB;"></div> Healthcare Specific</div>
+  <div class="legend-item"><div class="animated-line" style="display:inline-block; width:30px; height:2px; border-radius:1px;"></div> Live Data Flow</div>
+</div>
+
+</div><!-- /canvas -->
+</body>
+</html>
